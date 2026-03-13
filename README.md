@@ -28,7 +28,17 @@ Reads incoming emails + Excel attachments, extracts structured data via Claude, 
 | `POST /api/skybot/execute` | ✅ Done |
 | Demo fixtures (3x) | ✅ Done |
 
-### Phase 1 — Frontend ⏳ Not Started
+### Phase 1 — Frontend ✅ Complete
+
+| Component | Status |
+|---|---|
+| React SPA (Vite + shadcn/ui) | ✅ Done |
+| Dashboard — request list | ✅ Done |
+| AI Parsing Result screen | ✅ Done |
+| HITL Delta Review screen | ✅ Done |
+| Audit Dashboard screen | ✅ Done |
+| SAP ground truth values from `sap_lookup` | ✅ Done |
+| Skybot success modal | ✅ Done |
 
 ### Phase 2 — G7 VM Deployment ⏳ Not Started
 
@@ -255,6 +265,169 @@ psql -h localhost -U bumblebee -d bumblebee_poc -f migrations/001_init.sql
 5. Set `DATABASE_URL` to point at `rks-postgres` (reachable by container name within the Docker network)
 6. Set `ANTHROPIC_API_KEY` in Portainer environment config
 7. Verify service healthy at port 8001 in Portainer
+
+---
+
+## Demo Walkthrough
+
+### Overview
+
+```
+Ingest email + Excel → Claude extracts changes → Parsing Result screen →
+Send for Review → HITL Delta screen → Approve / Deny per line →
+Submit to SAP (Skybot mock) → status = completed → Audit Log
+```
+
+**Screens involved:**
+- `/` — Dashboard: all requests, status badges, Review button per row
+- `/requests/:id` — Parsing Result: AI extraction card + extracted table
+- `/requests/:id/review` — HITL Delta: SAP current vs proposed, per-item approve/deny
+- `/audit` — Audit Log: full record with timestamps, filterable by status
+
+---
+
+### Reset the DB before demoing
+
+**Full reset** (drops and recreates everything):
+```bash
+docker compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml up --build
+```
+
+**Quick reset** (wipes requests only, keeps SAP seed data):
+```bash
+docker exec -it bumblebee-dev-db psql -U bumblebee -d bumblebee_poc \
+  -c "TRUNCATE request_items, requests CASCADE;"
+```
+
+---
+
+### Fixture 1 — CSR Bulk Reassignment (Hero Scenario)
+
+**Scenario:** Sarah from Sales Ops wants to reassign 3 accounts to different CSRs.
+
+**Ingest:**
+```bash
+curl -X POST http://localhost:8001/api/ingest \
+  -F "sender=sarah.ops@bumblebeefoods.com" \
+  -F "subject=CSR Reassignment - Walmart, Kroger, Target Accounts" \
+  -F "email_body=$(cat fixtures/fixture_1_bulk_reassignment/email.txt)" \
+  -F "attachment=@fixtures/fixture_1_bulk_reassignment/attachment.xlsx"
+```
+
+**What Claude extracts:**
+
+| Account ID | Account Name | Field | SAP Current | Proposed |
+|---|---|---|---|---|
+| 100123 | Walmart Inc. | CSR | [CSR_A] | [CSR_B] |
+| 100456 | Kroger Co. | CSR | [CSR_A] | [CSR_C] |
+| 100789 | Target Corporation | CSR | [CSR_A] | [CSR_C] |
+
+- Confidence: **~95%** → `auto_classified`
+
+**Parsing Result screen:**
+- Confidence badge shows **95% green**
+- All 3 accounts visible in extracted table
+- Click **"Send for Review"** → navigates to HITL
+
+**HITL Delta screen:**
+- 3 rows side by side — SAP current `[CSR_A]` vs proposed `[CSR_B]` / `[CSR_C]`
+- Click **Approve All** or approve row by row with optional comments
+- Click **Submit to SAP (Skybot)**
+
+**Skybot modal:**
+```
+Job ID: SKY-2026-MOCK-001
+SAP Confirmation: BAPI_PARTNER_FUNC_UPDATE executed
+Records Updated: 3
+```
+- Request status → **completed** (dark green) in Dashboard
+
+---
+
+### Fixture 2 — Single Account Update
+
+**Scenario:** James, Regional Sales Manager, moves Costco to a new CSR.
+
+**Ingest:**
+```bash
+curl -X POST http://localhost:8001/api/ingest \
+  -F "sender=james.regional@bumblebeefoods.com" \
+  -F "subject=CSR Update - Costco Account" \
+  -F "email_body=$(cat fixtures/fixture_2_single_update/email.txt)" \
+  -F "attachment=@fixtures/fixture_2_single_update/attachment.xlsx"
+```
+
+**What Claude extracts:**
+
+| Account ID | Account Name | Field | SAP Current | Proposed |
+|---|---|---|---|---|
+| 100234 | Costco Wholesale | CSR | [CSR_D] | [CSR_B] |
+
+- Confidence: **~90%** → `auto_classified`
+
+**Flow:**
+- Parsing Result → confidence **90% green** → Send for Review
+- HITL → 1 row → approve → submit → `Records Updated: 1` → completed
+
+---
+
+### Fixture 3 — Ambiguous Email (No Excel)
+
+**Scenario:** Procurement sent a vague email — no account IDs, no attachment, unsure which field.
+
+**Ingest:**
+```bash
+curl -X POST http://localhost:8001/api/ingest \
+  -F "sender=procurement.user@bumblebeefoods.com" \
+  -F "subject=Account changes needed" \
+  -F "email_body=$(cat fixtures/fixture_3_ambiguous/email.txt)"
+```
+
+**What Claude extracts:**
+- Confidence: **~30%** → `needs_review`
+- Items: **0** — no valid account IDs found
+- Notes: explains uncertainty (field unclear, no account numbers provided)
+
+**Parsing Result screen:**
+- Confidence badge shows **30% orange** → `needs_review`
+- Extracted table is empty
+- Two paths:
+  - **"Send for Review"** → HITL screen with empty table, human handles manually
+  - **"Flag for Manual Review"** → status = `flagged`, back to Dashboard
+
+**Purpose in the demo:** Shows the AI does not hallucinate account IDs. When it doesn't know, it says so — and routes to a human.
+
+---
+
+### Dashboard after all 3 fixtures
+
+| Sender | Type | Confidence | Status |
+|---|---|---|---|
+| sarah.ops@... | partner_function_change | 95% 🟢 | completed |
+| james.regional@... | partner_function_change | 90% 🟢 | completed |
+| procurement.user@... | partner_function_change | 30% 🟠 | flagged |
+
+---
+
+### Audit Log
+
+After the demo, `GET /api/audit` (Audit Dashboard screen) shows all 3 requests with:
+- Real `created_at`, `reviewed_at`, `completed_at` timestamps
+- Fixtures 1 & 2 → `completed`
+- Fixture 3 → `flagged`, no completion time
+
+---
+
+### 3-Minute HITL Flow (Success Criteria)
+
+1. Open Dashboard → click **Review** on Fixture 1
+2. See 3 rows — SAP current vs proposed
+3. Click **Approve All**
+4. Click **Submit to SAP**
+5. Skybot modal appears → close → lands on Audit Log
+
+Total time: under 60 seconds once data is ingested.
 
 ---
 

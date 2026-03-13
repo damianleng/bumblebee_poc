@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Request, RequestItem
+from models import Request, RequestItem, SapLookup
 from schemas import RequestOut, RequestListOut, ItemPatchIn
 
 router = APIRouter()
@@ -17,12 +17,22 @@ def list_requests(db: Session = Depends(get_db)):
     return db.query(Request).order_by(Request.created_at.desc()).all()
 
 
-@router.get("/api/requests/{request_id}", response_model=RequestOut)
+@router.get("/api/requests/{request_id}")
 def get_request(request_id: UUID, db: Session = Depends(get_db)):
     req = db.query(Request).filter(Request.id == request_id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
-    return req
+
+    account_ids = [item.account_id for item in req.items]
+    sap_rows = db.query(SapLookup).filter(SapLookup.account_id.in_(account_ids)).all()
+    sap_map = {row.account_id: row for row in sap_rows}
+
+    result = RequestOut.model_validate(req).model_dump()
+    for item in result["items"]:
+        sap = sap_map.get(item["account_id"])
+        item["account_name"] = sap.account_name if sap else None
+        item["sap_current_value"] = sap.current_csr if sap else None
+    return result
 
 
 @router.post("/api/requests/{request_id}/approve")

@@ -22,12 +22,25 @@ env/
 
 # Node
 node_modules/
-frontend/dist/
-frontend/build/
 .npm/
 
-# Vite
-frontend/.vite/
+# Client build output
+client/dist/
+client/dist-ssr/
+client/build/
+client/.vite/
+
+# Logs (client)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor (client)
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
 # OS
 .DS_Store
