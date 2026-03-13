@@ -32,8 +32,8 @@ export default function ParsingResult() {
       <h1 className="text-xl font-semibold">Request Details</h1>
 
       <div className="bg-card border rounded-lg p-5">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><span className="text-xs text-muted-foreground block">Sender</span>{r.sender}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div><span className="text-xs text-muted-foreground block">Sender</span><span className="break-all">{r.sender}</span></div>
           <div><span className="text-xs text-muted-foreground block">Submitted</span>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</div>
           <div><span className="text-xs text-muted-foreground block">Request Type</span>{r.request_type}{r.sub_type ? ` / ${r.sub_type}` : ""}</div>
           <div>
@@ -51,13 +51,13 @@ export default function ParsingResult() {
       {items.length > 0 && (
         <div className="bg-card border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Account ID</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Field</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Current Value</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Proposed Value</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account ID</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Field</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Current Value</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -75,7 +75,7 @@ export default function ParsingResult() {
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button onClick={handleApprove} disabled={!!acting} className="bg-status-approved hover:bg-status-approved/90 text-primary-foreground">
           {acting === "approve" && <Loader2 className="mr-2 h-3 w-3 animate-spin" />} Send for Review
         </Button>

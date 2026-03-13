@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#18181b"/>
+  <!-- Bot icon (Lucide style) -->
+  <rect x="8" y="12" width="16" height="11" rx="2" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="12.5" cy="17" r="1.2" fill="#a1a1aa"/>
+  <circle cx="19.5" cy="17" r="1.2" fill="#a1a1aa"/>
+  <line x1="12" y1="23" x2="12" y2="26" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="20" y1="23" x2="20" y2="26" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="16" y1="12" x2="16" y2="9" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="16" cy="8" r="1.2" fill="#a1a1aa"/>
+</svg>

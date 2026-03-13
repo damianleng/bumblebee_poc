@@ -209,24 +209,24 @@ export default function Dashboard() {
         )}
         {!isLoading && !error && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Request ID</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Sender</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Request Type</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Confidence</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Request ID</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sender</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Request Type</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Submitted</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Confidence</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((r: any) => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2 font-mono text-xs">{truncateUUID(r.id)}</td>
-                    <td className="px-4 py-2">{r.sender}</td>
-                    <td className="px-4 py-2">{r.request_type ?? "—"}</td>
+                    <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">{truncateUUID(r.id)}</td>
+                    <td className="px-4 py-2 max-w-[180px] truncate">{r.sender}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">{r.request_type ?? "—"}</td>
                     <td className="px-4 py-2 text-muted-foreground">{formatDate(r.created_at)}</td>
                     <td className="px-4 py-2">
                       <span className={`text-xs font-medium ${(r.confidence ?? 0) >= 0.85 ? "text-status-approved" : "text-status-flagged"}`}>

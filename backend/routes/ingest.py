@@ -1,13 +1,16 @@
 import io
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, HTTPException
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import pandas as pd
 
 from database import get_db
-from models import Request, RequestItem
+from models import Request as RequestModel, RequestItem
 from agent import run_agent
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 
@@ -21,7 +24,9 @@ def parse_excel(file_bytes: bytes) -> str:
 
 
 @router.post("/api/ingest")
+@limiter.limit("10/minute")
 async def ingest(
+    request: Request,
     sender: str = Form(...),
     subject: str = Form(...),
     email_body: str = Form(...),
@@ -46,7 +51,7 @@ async def ingest(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent error: {e}")
 
-    req = Request(
+    req = RequestModel(
         sender=sender,
         subject=subject,
         request_type=result.get("request_type"),
