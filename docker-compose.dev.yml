@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    container_name: bumblebee-dev-db
+    environment:
+      POSTGRES_DB: bumblebee_poc
+      POSTGRES_USER: bumblebee
+      POSTGRES_PASSWORD: bumblebee
+    ports:
+      - "5432:5432"
+    volumes:
+      - bumblebee_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bumblebee-dev-backend
+    environment:
+      DATABASE_URL: postgresql://bumblebee:bumblebee@db:5432/bumblebee_poc
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  bumblebee_dev_data:
