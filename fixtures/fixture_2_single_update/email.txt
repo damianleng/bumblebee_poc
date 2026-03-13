@@ -1,0 +1,17 @@
+From: james.regional@bumblebeefoods.com
+To: masterdata@bumblebeefoods.com
+Subject: CSR Update - Costco Account
+Date: Thu, 13 Mar 2026 10:45:00 -0500
+
+Hello,
+
+I need one CSR update processed for the Costco Wholesale account.
+
+Account 100234 (Costco Wholesale) is currently assigned to [CSR_D] and should be
+moved to [CSR_B] as part of our West region restructuring.
+
+See attached for the account detail. Please action as soon as possible.
+
+Thanks,
+James Tran
+Regional Sales Manager — West | BumbleBee Foods

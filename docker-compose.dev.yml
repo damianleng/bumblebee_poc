@@ -18,7 +18,8 @@ services:
       dockerfile: Dockerfile
     container_name: bumblebee-dev-backend
     environment:
-      DATABASE_URL: postgresql://bumblebee:bumblebee@db:5432/bumblebee_poc
+      DATABASE_URL: ${DATABASE_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
       - "8001:8001"
     volumes:

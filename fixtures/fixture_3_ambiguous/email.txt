@@ -1,0 +1,20 @@
+From: procurement.user@bumblebeefoods.com
+To: masterdata@bumblebeefoods.com
+Subject: Account changes needed
+Date: Thu, 13 Mar 2026 13:22:00 -0500
+
+Hi team,
+
+We have some accounts that need to be updated in the system. I think it's the CSR
+field but I'm not 100% sure — it might also be the partner function.
+
+The accounts are somewhere in the Southeast region, I believe Publix and maybe
+Winn-Dixie are involved. We want them moved to whoever handles the Northeast
+accounts now.
+
+I don't have the exact account numbers on me but the region manager said it was
+urgent. Can someone look into this and make the appropriate changes?
+
+Let me know if you need more info.
+
+Thanks
