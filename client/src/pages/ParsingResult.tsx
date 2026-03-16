@@ -18,6 +18,7 @@ export default function ParsingResult() {
   const r = data;
   const items = r?.items || r?.changes || [];
   const confidence = r?.confidence ?? 0;
+  const isCSR = r?.request_type === "partner_function_change";
 
   const handleApprove = () => {
     navigate(`/requests/${id}/review`);
@@ -63,6 +64,7 @@ export default function ParsingResult() {
             <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  {isCSR && <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account ID</th>}
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Field</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Current Value</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed Value</th>
@@ -71,6 +73,7 @@ export default function ParsingResult() {
               <tbody>
                 {items.map((item: any, i: number) => (
                   <tr key={item.id || i} className="border-b last:border-0 hover:bg-muted/30">
+                    {isCSR && <td className="px-4 py-2 font-mono text-xs">{item.account_id ?? "—"}</td>}
                     <td className="px-4 py-2 font-mono text-xs">{item.field_name || item.field}</td>
                     <td className="px-4 py-2 text-muted-foreground">{item.current_value ?? "—"}</td>
                     <td className="px-4 py-2 font-medium">{item.proposed_value ?? "—"}</td>

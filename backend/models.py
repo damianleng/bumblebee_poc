@@ -33,6 +33,7 @@ class RequestItem(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_id = Column(UUID(as_uuid=True), ForeignKey("requests.id", ondelete="CASCADE"))
+    account_id = Column(String(50))
     field_name = Column(String(100))
     current_value = Column(String(255))
     proposed_value = Column(String(255))
@@ -41,6 +42,17 @@ class RequestItem(Base):
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
 
     request = relationship("Request", back_populates="items")
+
+
+class SapLookup(Base):
+    __tablename__ = "sap_lookup"
+
+    account_id = Column(String(50), primary_key=True)
+    account_name = Column(String(255), nullable=False)
+    current_csr = Column(String(255))
+    current_partner = Column(String(255))
+    region = Column(String(100))
+    segment = Column(String(100))
 
 
 class VendorLookup(Base):

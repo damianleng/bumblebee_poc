@@ -1,4 +1,5 @@
 import io
+import pandas as pd
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, HTTPException
 from sqlalchemy.orm import Session
@@ -15,30 +16,35 @@ router = APIRouter()
 
 def parse_excel(file_bytes: bytes) -> str:
     """
-    Read the SAP Vendor Setup/Change form and return a plain-text
-    representation of col B (field label) and col C (value) pairs,
-    skipping blank rows and dropdown scaffolding.
+    Auto-detect the attachment format and parse accordingly:
+    - SAP Vendor Setup/Change form → col B label + col C value parser
+    - Simple CSR table → pandas table parser
     """
     try:
         import openpyxl
         wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
-        # Use the main form sheet; fall back to first sheet
-        sheet_name = "SAP VENDOR SET UP OR CHANGE" if "SAP VENDOR SET UP OR CHANGE" in wb.sheetnames else wb.sheetnames[0]
-        ws = wb[sheet_name]
-        lines = []
-        for row in ws.iter_rows(values_only=True):
-            label = row[1] if len(row) > 1 else None
-            value = row[2] if len(row) > 2 else None
-            if not label or not value:
-                continue
-            label_str = str(label).strip()
-            value_str = str(value).strip()
-            if not label_str or not value_str:
-                continue
-            if value_str in ("SELECT ONE", "") or value_str.startswith("="):
-                continue
-            lines.append(f"{label_str}: {value_str}")
-        return "\n".join(lines) if lines else "(no form data extracted)"
+
+        if "SAP VENDOR SET UP OR CHANGE" in wb.sheetnames:
+            # Vendor form: read col B (label) + col C (value), and col E + col G for header fields
+            ws = wb["SAP VENDOR SET UP OR CHANGE"]
+            lines = []
+            for row in ws.iter_rows(values_only=True):
+                # Main fields: col B label → col C value
+                label = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+                value = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+                if label and value and value not in ("SELECT ONE",) and not value.startswith("="):
+                    lines.append(f"{label}: {value}")
+                # Header fields: col E label → col G value
+                hlabel = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+                hvalue = str(row[6]).strip() if len(row) > 6 and row[6] else ""
+                if hlabel and hvalue and not hvalue.startswith("="):
+                    lines.append(f"{hlabel}: {hvalue}")
+            return "\n".join(lines) if lines else "(no form data extracted)"
+        else:
+            # CSR table: simple pandas parse
+            import pandas as pd
+            df = pd.read_excel(io.BytesIO(file_bytes), engine="openpyxl")
+            return df.to_string(index=False)
     except Exception as e:
         return f"(failed to parse Excel: {e})"
 
@@ -89,6 +95,7 @@ async def ingest(
     for item in result.get("items", []):
         db.add(RequestItem(
             request_id=req.id,
+            account_id=item.get("account_id"),
             field_name=item.get("field_name"),
             current_value=item.get("current_value"),
             proposed_value=item.get("proposed_value"),

@@ -8,6 +8,7 @@ from decimal import Decimal
 class RequestItemOut(BaseModel):
     id: UUID
     request_id: UUID
+    account_id: Optional[str] = None
     field_name: Optional[str]
     current_value: Optional[str]
     proposed_value: Optional[str]

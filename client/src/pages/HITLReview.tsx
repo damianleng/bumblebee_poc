@@ -25,6 +25,7 @@ export default function HITLReview() {
 
   const r = data;
   const items = r?.items || r?.changes || [];
+  const isCSR = r?.request_type === "partner_function_change";
 
   const handleItemAction = async (itemId: string, status: "approved" | "denied") => {
     setItemStatuses(prev => ({ ...prev, [itemId]: status }));
@@ -60,17 +61,36 @@ export default function HITLReview() {
       {/* Summary card */}
       <div className="bg-card border rounded-lg p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-          <div>
-            <span className="text-xs text-muted-foreground block mb-0.5">Vendor Name</span>
-            <span className="font-medium truncate block">{r.vendor_name ?? "—"}</span>
-          </div>
-          <div>
-            <span className="text-xs text-muted-foreground block mb-0.5">Vendor #</span>
-            <span className="font-mono">{r.vendor_number ?? "New Vendor"}</span>
-          </div>
+          {isCSR ? (
+            <div>
+              <span className="text-xs text-muted-foreground block mb-0.5">Sender</span>
+              <span className="truncate block">{r.sender}</span>
+            </div>
+          ) : (
+            <div>
+              <span className="text-xs text-muted-foreground block mb-0.5">Vendor Name</span>
+              <span className="font-medium truncate block">{r.vendor_name ?? "—"}</span>
+            </div>
+          )}
+          {isCSR ? (
+            <div>
+              <span className="text-xs text-muted-foreground block mb-0.5">Submitted</span>
+              <span>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</span>
+            </div>
+          ) : (
+            <div>
+              <span className="text-xs text-muted-foreground block mb-0.5">Vendor #</span>
+              <span className="font-mono">{r.vendor_number ?? "New Vendor"}</span>
+            </div>
+          )}
           <div>
             <span className="text-xs text-muted-foreground block mb-0.5">Request Type</span>
-            <span>{r.request_type === "new_vendor" ? "New Vendor" : r.request_type === "change_existing" ? "Change Existing" : r.request_type ?? "—"}</span>
+            <span>
+              {r.request_type === "new_vendor" ? "New Vendor"
+                : r.request_type === "change_existing" ? "Change Existing"
+                : r.request_type === "partner_function_change" ? "Partner Function Change"
+                : r.request_type ?? "—"}
+            </span>
           </div>
           <div>
             <span className="text-xs text-muted-foreground block mb-0.5">Confidence</span>
@@ -98,12 +118,14 @@ export default function HITLReview() {
       {/* Delta table */}
       <div className="bg-card border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
+          <table className={`w-full text-sm ${isCSR ? "min-w-[780px]" : "min-w-[600px]"}`}>
             <thead>
               <tr className="border-b bg-muted/50">
+                {isCSR && <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account ID</th>}
+                {isCSR && <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account Name</th>}
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Field</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Current Value</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed Value</th>
+                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{isCSR ? "SAP Current" : "Current Value"}</th>
+                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed</th>
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap w-20">Action</th>
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[160px]">Comment</th>
               </tr>
@@ -114,8 +136,10 @@ export default function HITLReview() {
                 const st = itemStatuses[iid] || item.approval_status;
                 return (
                   <tr key={iid} className={`border-b last:border-0 transition-colors ${st === "approved" ? "bg-green-50 dark:bg-green-950/20" : st === "denied" ? "bg-red-50 dark:bg-red-950/20" : "hover:bg-muted/30"}`}>
+                    {isCSR && <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{item.account_id ?? "—"}</td>}
+                    {isCSR && <td className="px-3 py-2.5 whitespace-nowrap">{item.account_name ?? "—"}</td>}
                     <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{item.field_name || item.field}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{item.current_value ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{item.sap_current_value ?? item.current_value ?? "—"}</td>
                     <td className="px-3 py-2.5 font-medium whitespace-nowrap">{item.proposed_value ?? "—"}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1">
@@ -147,7 +171,7 @@ export default function HITLReview() {
                 );
               })}
               {items.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">No items to review</td></tr>
+                <tr><td colSpan={isCSR ? 7 : 5} className="px-3 py-8 text-center text-muted-foreground">No items to review</td></tr>
               )}
             </tbody>
           </table>
