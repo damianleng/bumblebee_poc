@@ -8,7 +8,6 @@ from decimal import Decimal
 class RequestItemOut(BaseModel):
     id: UUID
     request_id: UUID
-    account_id: str
     field_name: Optional[str]
     current_value: Optional[str]
     proposed_value: Optional[str]
@@ -25,7 +24,8 @@ class RequestOut(BaseModel):
     sender: str
     subject: Optional[str]
     request_type: Optional[str]
-    sub_type: Optional[str]
+    vendor_number: Optional[str]
+    vendor_name: Optional[str]
     confidence: Optional[Decimal]
     classification_status: Optional[str]
     notes: Optional[str]
@@ -45,6 +45,8 @@ class RequestListOut(BaseModel):
     sender: str
     subject: Optional[str]
     request_type: Optional[str]
+    vendor_number: Optional[str]
+    vendor_name: Optional[str]
     confidence: Optional[Decimal]
     classification_status: Optional[str]
     status: str

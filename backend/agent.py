@@ -1,5 +1,4 @@
 import json
-import re
 import os
 import anthropic
 
@@ -7,10 +6,19 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 SYSTEM_PROMPT = """
 You are a Master Data request parser for an enterprise SAP system.
-Read the email and Excel attachment and extract request details into structured JSON.
-ONLY extract what is explicitly stated. Never infer or guess.
-If a field is missing, return null.
-Return ONLY valid JSON. No explanation, no markdown, no preamble.
+You read emails and SAP Vendor Setup/Change form attachments and extract the request details into structured JSON.
+
+The Excel attachment is a SAP Vendor Setup/Change form. Field labels appear in column B, and the filled-in values appear in column C.
+Key fields to look for: Type (NEW VENDOR or CHANGE EXISTING), VENDOR #, NAME 1, VENDOR ACCT GROUP, VENDOR IN COMPANY CODE,
+STREET ADDRESS, CITY, STATE, ZIP, COUNTRY, EIN, PAYMENT TERMS, payment method checkboxes (P-CARD/ACH COMPANY/ACH PERSONAL/CHECK),
+BANK KEY, BANK ACCT #, BANK ACCT HOLDER NAME, BANK NAME, DEPOSIT CONFIRMATION EMAIL, and Comments/Special Notes.
+
+Rules:
+- ONLY extract fields that are explicitly filled in. Never infer or guess missing values.
+- For change_existing requests: only include fields that are actually being changed as items.
+- For new_vendor requests: include all filled fields as items (current_value is always null).
+- If a field is blank or says "SELECT ONE", skip it.
+- Return ONLY valid JSON. No explanation, no markdown, no preamble.
 """
 
 USER_PROMPT_TEMPLATE = """
@@ -22,21 +30,21 @@ Email metadata:
 Email body:
 {email_body}
 
-Excel attachment content:
+SAP Vendor Form content (col B = field label, col C = value):
 {excel_table}
 
 Return this exact JSON:
 {{
-  "request_type": "partner_function_change | vendor_change | material_update | new_vendor",
-  "sub_type": "e.g. csr_reassignment",
+  "request_type": "new_vendor | change_existing",
+  "vendor_number": "e.g. V-002847, or null for new vendors",
+  "vendor_name": "NAME 1 value from the form",
   "confidence": 0.0 to 1.0,
-  "notes": "important context from the email",
+  "notes": "key context from the email or the Comments field on the form",
   "items": [
     {{
-      "account_id": "numeric SAP account ID only",
-      "field_name": "field being changed e.g. CSR",
-      "current_value": "current value if mentioned, else null",
-      "proposed_value": "new value being requested"
+      "field_name": "SAP field name in UPPER_SNAKE_CASE e.g. BANK_KEY",
+      "current_value": "current value if this is a change, else null",
+      "proposed_value": "new value from the form"
     }}
   ]
 }}
@@ -56,13 +64,14 @@ def validate_extracted(data: dict) -> dict:
     """Step 2 — clean and classify the extracted output."""
     items = data.get("items", [])
     for item in items:
-        # Strip non-numeric from account_id
-        if item.get("account_id"):
-            item["account_id"] = re.sub(r"\D", "", item["account_id"])
-        # Trim strings
         for key in ("field_name", "current_value", "proposed_value"):
             if item.get(key):
                 item[key] = item[key].strip()
+
+    if data.get("vendor_number"):
+        data["vendor_number"] = data["vendor_number"].strip()
+    if data.get("vendor_name"):
+        data["vendor_name"] = data["vendor_name"].strip().upper()
 
     confidence = float(data.get("confidence", 0))
     data["classification_status"] = (

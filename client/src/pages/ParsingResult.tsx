@@ -35,12 +35,21 @@ export default function ParsingResult() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><span className="text-xs text-muted-foreground block">Sender</span><span className="break-all">{r.sender}</span></div>
           <div><span className="text-xs text-muted-foreground block">Submitted</span>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</div>
-          <div><span className="text-xs text-muted-foreground block">Request Type</span>{r.request_type}{r.sub_type ? ` / ${r.sub_type}` : ""}</div>
+          <div>
+            <span className="text-xs text-muted-foreground block">Request Type</span>
+            {r.request_type === "new_vendor" ? "New Vendor" : r.request_type === "change_existing" ? "Change Existing" : r.request_type ?? "—"}
+          </div>
           <div>
             <span className="text-xs text-muted-foreground block">Confidence</span>
             <span className={`font-medium ${confidence >= 0.85 ? "text-status-approved" : "text-status-flagged"}`}>{Math.round(confidence * 100)}%</span>
           </div>
         </div>
+        {(r.vendor_name || r.vendor_number) && (
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm border-t pt-3">
+            {r.vendor_name && <div><span className="text-xs text-muted-foreground block">Vendor Name</span>{r.vendor_name}</div>}
+            {r.vendor_number && <div><span className="text-xs text-muted-foreground block">Vendor #</span><span className="font-mono">{r.vendor_number}</span></div>}
+          </div>
+        )}
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Status:</span>
           <StatusBadge status={r.status} />
@@ -54,7 +63,6 @@ export default function ParsingResult() {
             <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account ID</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Field</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Current Value</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed Value</th>
@@ -63,8 +71,7 @@ export default function ParsingResult() {
               <tbody>
                 {items.map((item: any, i: number) => (
                   <tr key={item.id || i} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-2 font-mono text-xs">{item.account_id}</td>
-                    <td className="px-4 py-2">{item.field_name || item.field}</td>
+                    <td className="px-4 py-2 font-mono text-xs">{item.field_name || item.field}</td>
                     <td className="px-4 py-2 text-muted-foreground">{item.current_value ?? "—"}</td>
                     <td className="px-4 py-2 font-medium">{item.proposed_value ?? "—"}</td>
                   </tr>
