@@ -226,7 +226,12 @@ export default function Dashboard() {
                   <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">{truncateUUID(r.id)}</td>
                     <td className="px-4 py-2 max-w-[180px] truncate">{r.sender}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{r.request_type ?? "—"}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {r.request_type === "new_vendor" ? "New Vendor"
+                        : r.request_type === "change_existing" ? "Change Existing"
+                        : r.request_type === "partner_function_change" ? "Partner Function Change"
+                        : r.request_type ?? "—"}
+                    </td>
                     <td className="px-4 py-2 text-muted-foreground">{formatDate(r.created_at)}</td>
                     <td className="px-4 py-2">
                       <span className={`text-xs font-medium ${(r.confidence ?? 0) >= 0.85 ? "text-status-approved" : "text-status-flagged"}`}>

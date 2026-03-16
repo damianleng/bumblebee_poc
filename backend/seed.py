@@ -1,5 +1,5 @@
 from database import engine, SessionLocal
-from models import Base, SapLookup
+from models import Base, SapLookup, VendorLookup
 
 SAP_SEED = [
     ("100123", "Walmart Inc.",         "[CSR_A]", "North America Sales", "US-South",     "Retail"),
@@ -28,17 +28,15 @@ def init():
             print("Seeding sap_lookup...")
             for row in SAP_SEED:
                 db.add(SapLookup(
-                    account_id=row[0],
-                    account_name=row[1],
-                    current_csr=row[2],
-                    current_partner=row[3],
-                    region=row[4],
-                    segment=row[5],
+                    account_id=row[0], account_name=row[1], current_csr=row[2],
+                    current_partner=row[3], region=row[4], segment=row[5],
                 ))
             db.commit()
             print(f"Seeded {len(SAP_SEED)} SAP records.")
         else:
             print("sap_lookup already seeded, skipping.")
+
+        print("vendor_lookup starts empty — vendors are added when new_vendor requests complete.")
     finally:
         db.close()
 

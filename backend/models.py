@@ -13,7 +13,8 @@ class Request(Base):
     sender = Column(String(255), nullable=False)
     subject = Column(String(500))
     request_type = Column(String(100))
-    sub_type = Column(String(100))
+    vendor_number = Column(String(50))
+    vendor_name = Column(String(255))
     confidence = Column(Numeric(3, 2))
     classification_status = Column(String(50))
     notes = Column(Text)
@@ -32,7 +33,7 @@ class RequestItem(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_id = Column(UUID(as_uuid=True), ForeignKey("requests.id", ondelete="CASCADE"))
-    account_id = Column(String(50), nullable=False)
+    account_id = Column(String(50))
     field_name = Column(String(100))
     current_value = Column(String(255))
     proposed_value = Column(String(255))
@@ -52,3 +53,24 @@ class SapLookup(Base):
     current_partner = Column(String(255))
     region = Column(String(100))
     segment = Column(String(100))
+
+
+class VendorLookup(Base):
+    __tablename__ = "vendor_lookup"
+
+    vendor_number = Column(String(50), primary_key=True)
+    vendor_name = Column(String(255), nullable=False)
+    acct_group = Column(String(100))
+    company_code = Column(String(50))
+    street_address = Column(String(255))
+    city = Column(String(100))
+    state = Column(String(50))
+    zip = Column(String(20))
+    country = Column(String(50))
+    ein = Column(String(50))
+    payment_terms = Column(String(50))
+    payment_method = Column(String(50))
+    bank_key = Column(String(50))
+    bank_acct_number = Column(String(50))
+    bank_acct_holder = Column(String(255))
+    bank_name = Column(String(255))

@@ -1,0 +1,18 @@
+From: maria.gonzalez@bumblebeefoods.com
+To: masterdata@bumblebeefoods.com
+Subject: New Vendor Setup - G7 Tech Services LLC
+Date: Mon, 16 Mar 2026 09:05:00 -0500
+
+Hi Master Data team,
+
+Please set up the following new vendor in SAP. The completed SAP Vendor Setup
+form is attached.
+
+G7 Tech Services LLC is a new IT services provider approved by Procurement.
+Payment will be via ACH. W-9 is on file with AP.
+
+Please confirm once the vendor has been created in SAP.
+
+Thanks,
+Maria Gonzalez
+Accounts Payable | BumbleBee Foods

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Request, RequestItem, SapLookup
+from models import Request, RequestItem, SapLookup, VendorLookup
 from schemas import RequestOut, RequestListOut, ItemPatchIn
 
 router = APIRouter()
@@ -23,15 +23,35 @@ def get_request(request_id: UUID, db: Session = Depends(get_db)):
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    account_ids = [item.account_id for item in req.items]
-    sap_rows = db.query(SapLookup).filter(SapLookup.account_id.in_(account_ids)).all()
-    sap_map = {row.account_id: row for row in sap_rows}
-
     result = RequestOut.model_validate(req).model_dump()
-    for item in result["items"]:
-        sap = sap_map.get(item["account_id"])
-        item["account_name"] = sap.account_name if sap else None
-        item["sap_current_value"] = sap.current_csr if sap else None
+
+    if req.request_type == "partner_function_change":
+        # CSR workflow: enrich each item with account name + SAP current CSR from sap_lookup
+        account_ids = [item["account_id"] for item in result["items"] if item.get("account_id")]
+        sap_rows = db.query(SapLookup).filter(SapLookup.account_id.in_(account_ids)).all()
+        sap_map = {row.account_id: row for row in sap_rows}
+        for item in result["items"]:
+            sap = sap_map.get(item.get("account_id"))
+            item["account_name"] = sap.account_name if sap else None
+            item["sap_current_value"] = sap.current_csr if sap else None
+
+    elif req.request_type == "change_existing" and req.vendor_number:
+        # Vendor workflow: fill in current_value from vendor_lookup where agent left it null
+        vendor = db.query(VendorLookup).filter(VendorLookup.vendor_number == req.vendor_number).first()
+        if vendor:
+            vendor_data = {
+                "VENDOR_NAME": vendor.vendor_name, "VENDOR_ACCT_GROUP": vendor.acct_group,
+                "COMPANY_CODE": vendor.company_code, "STREET_ADDRESS": vendor.street_address,
+                "CITY": vendor.city, "STATE": vendor.state, "ZIP": vendor.zip,
+                "COUNTRY": vendor.country, "EIN": vendor.ein,
+                "PAYMENT_TERMS": vendor.payment_terms, "PAYMENT_METHOD": vendor.payment_method,
+                "BANK_KEY": vendor.bank_key, "BANK_ACCT_NUMBER": vendor.bank_acct_number,
+                "BANK_ACCT_HOLDER": vendor.bank_acct_holder, "BANK_NAME": vendor.bank_name,
+            }
+            for item in result["items"]:
+                if item.get("current_value") is None:
+                    item["current_value"] = vendor_data.get(item["field_name"])
+
     return result
 
 
