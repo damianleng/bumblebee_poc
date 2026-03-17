@@ -125,7 +125,7 @@ export default function HITLReview() {
                 {isCSR && <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Account Name</th>}
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Field</th>
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{isCSR ? "SAP Current" : "Current Value"}</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed</th>
+                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">Proposed Change</th>
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap w-20">Action</th>
                 <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[160px]">Comment</th>
               </tr>

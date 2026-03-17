@@ -10,22 +10,24 @@ services:
     ports:
       - "8001:8001"
     networks:
-      - errekaese_default
+      - errekaese_app-network
     restart: unless-stopped
 
   frontend:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     container_name: poc-bumblebee-frontend
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
     ports:
       - "3000:8080"
     depends_on:
       - backend
+    networks:
+      - errekaese_app-network
     restart: unless-stopped
 
 networks:
-  errekaese_default:
+  errekaese_app-network:
     external: true

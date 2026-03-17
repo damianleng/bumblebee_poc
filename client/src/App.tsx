@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
+import SubmitEmail from "@/pages/SubmitEmail";
 import ParsingResult from "@/pages/ParsingResult";
 import HITLReview from "@/pages/HITLReview";
 import AuditDashboard from "@/pages/AuditDashboard";
@@ -21,6 +22,7 @@ const App = () => (
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/submit" element={<SubmitEmail />} />
             <Route path="/requests/:id" element={<ParsingResult />} />
             <Route path="/requests/:id/review" element={<HITLReview />} />
             <Route path="/audit" element={<AuditDashboard />} />

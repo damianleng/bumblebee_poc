@@ -1,4 +1,4 @@
-import { LayoutDashboard, ClipboardList } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Mail } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Submit Email", url: "/submit", icon: Mail },
   { title: "Audit Log", url: "/audit", icon: ClipboardList },
 ];
 

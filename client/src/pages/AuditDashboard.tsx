@@ -11,7 +11,15 @@ function truncateUUID(id: string) {
   return id?.length > 8 ? id.slice(0, 8) + "…" : id;
 }
 
-const statuses = ["all", "pending_review", "approved", "denied", "completed", "flagged"];
+const statuses: { value: string; label: string }[] = [
+  { value: "all",            label: "All" },
+  { value: "pending_review", label: "Pending Review" },
+  { value: "approved",       label: "Approved" },
+  { value: "denied",         label: "Denied" },
+  { value: "completed",      label: "Completed" },
+  { value: "flagged",        label: "Flagged" },
+  { value: "needs_review",   label: "Needs Review" },
+];
 
 export default function AuditDashboard() {
   const [status, setStatus] = useState("all");
@@ -41,7 +49,7 @@ export default function AuditDashboard() {
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-full sm:w-44 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {statuses.map(s => <SelectItem key={s} value={s}>{s === "all" ? "All" : s.replace("_", " ")}</SelectItem>)}
+                {statuses.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
