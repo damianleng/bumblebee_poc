@@ -24,6 +24,7 @@ services:
       - "8001:8001"
     volumes:
       - ./backend:/app
+      - uploads_data_dev:/app/uploads
     depends_on:
       - db
     restart: unless-stopped
@@ -46,3 +47,4 @@ services:
 
 volumes:
   bumblebee_dev_data:
+  uploads_data_dev:

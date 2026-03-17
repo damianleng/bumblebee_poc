@@ -1,4 +1,6 @@
 import io
+import os
+import uuid
 import pandas as pd
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, HTTPException
@@ -7,8 +9,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Request as RequestModel, RequestItem
+from models import Request as RequestModel, RequestItem, RequestAttachment
 from agent import run_agent
+
+UPLOAD_DIR = "/app/uploads"
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
@@ -49,6 +53,17 @@ def parse_excel(file_bytes: bytes) -> str:
         return f"(failed to parse Excel: {e})"
 
 
+def save_attachment(request_id: str, version: int, filename: str, file_bytes: bytes) -> str:
+    """Save file to disk and return the stored file path."""
+    folder = os.path.join(UPLOAD_DIR, request_id)
+    os.makedirs(folder, exist_ok=True)
+    safe_name = f"v{version}_{filename}"
+    file_path = os.path.join(folder, safe_name)
+    with open(file_path, "wb") as f:
+        f.write(file_bytes)
+    return file_path
+
+
 @router.post("/api/ingest")
 @limiter.limit("10/minute")
 async def ingest(
@@ -62,9 +77,12 @@ async def ingest(
     timestamp = datetime.now(timezone.utc).isoformat()
 
     excel_table = "(no attachment)"
+    attachment_filename = None
+    attachment_bytes = None
     if attachment and attachment.filename:
-        raw_bytes = await attachment.read()
-        excel_table = parse_excel(raw_bytes)
+        attachment_bytes = await attachment.read()
+        attachment_filename = attachment.filename
+        excel_table = parse_excel(attachment_bytes)
 
     try:
         result = run_agent(
@@ -99,6 +117,16 @@ async def ingest(
             field_name=item.get("field_name"),
             current_value=item.get("current_value"),
             proposed_value=item.get("proposed_value"),
+        ))
+
+    if attachment_bytes and attachment_filename:
+        file_path = save_attachment(str(req.id), 1, attachment_filename, attachment_bytes)
+        db.add(RequestAttachment(
+            request_id=req.id,
+            version="1",
+            filename=attachment_filename,
+            file_path=file_path,
+            notes="Original attachment",
         ))
 
     db.commit()

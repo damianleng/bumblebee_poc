@@ -48,6 +48,28 @@ export function executeSkybot(requestId: string) {
   return request(`/api/skybot/execute?request_id=${requestId}`, { method: "POST" });
 }
 
+export function fetchAttachments(requestId: string) {
+  return request(`/api/requests/${requestId}/attachments`);
+}
+
+export function downloadAttachmentUrl(requestId: string, attachmentId: string) {
+  return `${BASE_URL}/api/requests/${requestId}/attachments/${attachmentId}/download`;
+}
+
+export function uploadAttachment(requestId: string, file: File, notes: string) {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("notes", notes);
+  return request(`/api/requests/${requestId}/attachments`, { method: "POST", body: fd });
+}
+
+export function reprocessRequest(requestId: string, reviewerComment: string, file?: File) {
+  const fd = new FormData();
+  fd.append("reviewer_comment", reviewerComment);
+  if (file) fd.append("file", file);
+  return request(`/api/requests/${requestId}/reprocess`, { method: "POST", body: fd });
+}
+
 export function fetchAuditLog(params: { status?: string; from_date?: string; to_date?: string }) {
   const query = new URLSearchParams();
   if (params.status && params.status !== "all") query.set("status", params.status);

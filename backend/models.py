@@ -26,6 +26,7 @@ class Request(Base):
     completed_at = Column(TIMESTAMPTZ)
 
     items = relationship("RequestItem", back_populates="request", cascade="all, delete")
+    attachments = relationship("RequestAttachment", back_populates="request", cascade="all, delete")
 
 
 class RequestItem(Base):
@@ -42,6 +43,20 @@ class RequestItem(Base):
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
 
     request = relationship("Request", back_populates="items")
+
+
+class RequestAttachment(Base):
+    __tablename__ = "request_attachments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id = Column(UUID(as_uuid=True), ForeignKey("requests.id", ondelete="CASCADE"))
+    version = Column(String(10), nullable=False)
+    filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    notes = Column(Text)
+    uploaded_at = Column(TIMESTAMPTZ, server_default=func.now())
+
+    request = relationship("Request", back_populates="attachments")
 
 
 class SapLookup(Base):

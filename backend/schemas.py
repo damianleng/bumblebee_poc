@@ -5,6 +5,18 @@ from datetime import datetime
 from decimal import Decimal
 
 
+class AttachmentOut(BaseModel):
+    id: UUID
+    request_id: UUID
+    version: str
+    filename: str
+    notes: Optional[str]
+    uploaded_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class RequestItemOut(BaseModel):
     id: UUID
     request_id: UUID
@@ -36,6 +48,7 @@ class RequestOut(BaseModel):
     reviewed_at: Optional[datetime]
     completed_at: Optional[datetime]
     items: List[RequestItemOut] = []
+    attachments: List[AttachmentOut] = []
 
     class Config:
         from_attributes = True

@@ -1,13 +1,19 @@
+import os
 from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Request, RequestItem, SapLookup, VendorLookup
-from schemas import RequestOut, RequestListOut, ItemPatchIn
+from models import Request, RequestItem, RequestAttachment, SapLookup, VendorLookup
+from schemas import RequestOut, RequestListOut, ItemPatchIn, AttachmentOut
+from routes.ingest import parse_excel
+from agent import run_agent
+
+UPLOAD_DIR = "/app/uploads"
 
 router = APIRouter()
 
@@ -123,3 +129,166 @@ def patch_item(
     db.commit()
     db.refresh(item)
     return {"item_id": str(item_id), "approval_status": item.approval_status}
+
+
+@router.get("/api/requests/{request_id}/attachments", response_model=List[AttachmentOut])
+def list_attachments(request_id: UUID, db: Session = Depends(get_db)):
+    req = db.query(Request).filter(Request.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return db.query(RequestAttachment).filter(
+        RequestAttachment.request_id == request_id
+    ).order_by(RequestAttachment.uploaded_at.asc()).all()
+
+
+@router.get("/api/requests/{request_id}/attachments/{attachment_id}/download")
+def download_attachment(request_id: UUID, attachment_id: UUID, db: Session = Depends(get_db)):
+    att = db.query(RequestAttachment).filter(
+        RequestAttachment.id == attachment_id,
+        RequestAttachment.request_id == request_id,
+    ).first()
+    if not att:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    if not os.path.exists(att.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    return FileResponse(
+        path=att.file_path,
+        filename=att.filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@router.post("/api/requests/{request_id}/attachments")
+async def upload_attachment(
+    request_id: UUID,
+    notes: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    req = db.query(Request).filter(Request.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    existing = db.query(RequestAttachment).filter(
+        RequestAttachment.request_id == request_id
+    ).count()
+    next_version = existing + 1
+
+    file_bytes = await file.read()
+    folder = os.path.join(UPLOAD_DIR, str(request_id))
+    os.makedirs(folder, exist_ok=True)
+    file_path = os.path.join(folder, f"v{next_version}_{file.filename}")
+    with open(file_path, "wb") as f:
+        f.write(file_bytes)
+
+    att = RequestAttachment(
+        request_id=request_id,
+        version=str(next_version),
+        filename=file.filename,
+        file_path=file_path,
+        notes=notes,
+    )
+    db.add(att)
+    db.commit()
+    db.refresh(att)
+    return AttachmentOut.model_validate(att)
+
+
+@router.post("/api/requests/{request_id}/reprocess")
+async def reprocess_request(
+    request_id: UUID,
+    reviewer_comment: str = Form(...),
+    file: UploadFile = File(None),
+    db: Session = Depends(get_db),
+):
+    req = db.query(Request).filter(Request.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    # Resolve attachment: use new upload if provided, else fall back to latest on disk
+    if file and file.filename:
+        file_bytes = await file.read()
+        existing_count = db.query(RequestAttachment).filter(
+            RequestAttachment.request_id == request_id
+        ).count()
+        next_version = existing_count + 1
+        folder = os.path.join(UPLOAD_DIR, str(request_id))
+        os.makedirs(folder, exist_ok=True)
+        file_path = os.path.join(folder, f"v{next_version}_{file.filename}")
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+        db.add(RequestAttachment(
+            request_id=request_id,
+            version=str(next_version),
+            filename=file.filename,
+            file_path=file_path,
+            notes=reviewer_comment,
+        ))
+        excel_table = parse_excel(file_bytes)
+    else:
+        # No new file — use latest saved attachment
+        latest = db.query(RequestAttachment).filter(
+            RequestAttachment.request_id == request_id
+        ).order_by(RequestAttachment.uploaded_at.desc()).first()
+        if latest and os.path.exists(latest.file_path):
+            with open(latest.file_path, "rb") as f:
+                excel_table = parse_excel(f.read())
+        else:
+            excel_table = "(no attachment)"
+
+    # Inject reviewer comment into email body for AI context
+    augmented_body = (
+        f"{req.notes or ''}\n\n"
+        f"--- Reviewer Note (Manual Review) ---\n{reviewer_comment}"
+    )
+
+    from datetime import datetime, timezone
+    try:
+        result = run_agent(
+            sender=req.sender,
+            subject=req.subject or "",
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            email_body=augmented_body,
+            excel_table=excel_table,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+
+    # Reset request with new AI output
+    req.request_type = result.get("request_type")
+    req.vendor_number = result.get("vendor_number")
+    req.vendor_name = result.get("vendor_name")
+    req.confidence = result.get("confidence")
+    req.classification_status = result.get("classification_status")
+    req.notes = result.get("notes")
+    req.raw_agent_output = result
+    req.status = "pending_review"
+    req.reviewed_at = None
+    req.completed_at = None
+
+    # Replace all items with new extraction
+    for old_item in req.items:
+        db.delete(old_item)
+    db.flush()
+
+    for item in result.get("items", []):
+        db.add(RequestItem(
+            request_id=req.id,
+            account_id=item.get("account_id"),
+            field_name=item.get("field_name"),
+            current_value=item.get("current_value"),
+            proposed_value=item.get("proposed_value"),
+        ))
+
+    db.commit()
+    db.refresh(req)
+
+    return {
+        "request_id": str(req.id),
+        "classification_status": req.classification_status,
+        "confidence": float(req.confidence) if req.confidence else None,
+        "request_type": req.request_type,
+        "status": req.status,
+        "items_count": len(req.items),
+        "notes": req.notes,
+    }

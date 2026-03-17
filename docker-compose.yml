@@ -7,6 +7,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - "8001:8001"
     networks:
@@ -31,3 +33,6 @@ services:
 networks:
   errekaese_app-network:
     external: true
+
+volumes:
+  uploads_data:

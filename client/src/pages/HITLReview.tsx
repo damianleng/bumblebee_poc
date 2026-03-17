@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchRequest, approveRequest, denyRequest, updateItem, executeSkybot } from "@/lib/api";
+import { fetchRequest, fetchAttachments, downloadAttachmentUrl, uploadAttachment, reprocessRequest, approveRequest, denyRequest, updateItem, executeSkybot } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Check, X, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Check, X, Loader2, Paperclip, Download, Upload, RefreshCw } from "lucide-react";
+import { useRef, useState } from "react";
 
 export default function HITLReview() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,18 @@ export default function HITLReview() {
   const [acting, setActing] = useState("");
   const [skybotResult, setSkybotResult] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+
+  // Reprocess state
+  const [reprocessComment, setReprocessComment] = useState("");
+  const [reprocessFile, setReprocessFile] = useState<File | null>(null);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessError, setReprocessError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: attachments } = useQuery({
+    queryKey: ["attachments", id],
+    queryFn: () => fetchAttachments(id!),
+  });
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="inline h-4 w-4 animate-spin mr-2" />Loading...</div>;
   if (error) return <div className="p-8 text-center text-destructive">Error: {(error as Error).message}</div>;
@@ -52,6 +65,27 @@ export default function HITLReview() {
       setSkybotResult(res);
       setShowModal(true);
     } catch {} finally { setActing(""); }
+  };
+
+  const handleReprocess = async () => {
+    if (!reprocessComment.trim()) {
+      setReprocessError("Comment is required before reprocessing.");
+      return;
+    }
+    setReprocessError("");
+    setReprocessing(true);
+    try {
+      await reprocessRequest(id!, reprocessComment.trim(), reprocessFile ?? undefined);
+      queryClient.invalidateQueries({ queryKey: ["request", id] });
+      queryClient.invalidateQueries({ queryKey: ["attachments", id] });
+      setReprocessComment("");
+      setReprocessFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (e: any) {
+      setReprocessError(e.message || "Reprocess failed.");
+    } finally {
+      setReprocessing(false);
+    }
   };
 
   return (
@@ -177,6 +211,87 @@ export default function HITLReview() {
           </table>
         </div>
       </div>
+
+      {/* Attachments */}
+      <div className="bg-card border rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Paperclip className="h-4 w-4 text-muted-foreground" />
+          Attachments
+        </div>
+        {attachments && attachments.length > 0 ? (
+          <div className="space-y-1.5">
+            {attachments.map((att: any) => (
+              <div key={att.id} className="text-sm bg-muted/40 rounded px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground shrink-0">v{att.version}</span>
+                    <span className="font-medium break-all">{att.filename}</span>
+                  </div>
+                  <a href={downloadAttachmentUrl(id!, att.id)} download={att.filename}>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 shrink-0">
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No attachments on this request.</p>
+        )}
+      </div>
+
+      {/* Reprocess panel — only shown when needs_review or flagged */}
+      {(r.status === "needs_review" || r.status === "flagged" || r.classification_status === "needs_review") && (
+        <div className="bg-card border border-dashed rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            Re-process with AI
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Download the attachment above, make your changes in Excel, re-upload it here, add a comment describing what you changed, then click Re-process.
+          </p>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground">
+              Upload updated form <span className="text-muted-foreground">(optional — leave blank to re-use existing)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={e => setReprocessFile(e.target.files?.[0] ?? null)}
+              />
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" />
+                {reprocessFile ? reprocessFile.name : "Choose file"}
+              </Button>
+              {reprocessFile && (
+                <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { setReprocessFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Comment <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              value={reprocessComment}
+              onChange={e => { setReprocessComment(e.target.value); setReprocessError(""); }}
+              placeholder="Describe what you changed or added (required)..."
+              className="text-sm min-h-[72px] resize-none"
+            />
+          </div>
+          {reprocessError && <p className="text-xs text-destructive">{reprocessError}</p>}
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleReprocess} disabled={reprocessing}>
+            {reprocessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Re-process with AI
+          </Button>
+        </div>
+      )}
 
       {/* Submit */}
       <div className="flex justify-end">
