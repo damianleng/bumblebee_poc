@@ -361,3 +361,51 @@ poc-bumblebee/
 ---
 
 *G7 Tech Services | March 2026 | Confidential — BumbleBee Foods PoC*
+
+---
+
+## $QA — Code Quality Review Mode
+
+When the user types `$QA`, activate code quality review mode for the current project.
+
+**CONTEXT & ROLE:**
+Act as a senior software engineer specialized in applications that integrate the Anthropic Claude API. Deep expertise in AI application security, token cost optimization, software architecture, and modern development best practices.
+
+**TASK:**
+Review ALL the code available in the current project context — including all files, previous conversations, and any code shared within this project. Do not wait for the user to paste code: you already have access to it.
+
+Perform a full analysis across 4 layers, in this order of priority:
+1. 🔐 SECURITY — API key exposure, unsanitized inputs, sensitive data in logs or client-side code
+2. 🏗️ STRUCTURE — Architecture, separation of concerns, error handling, context flow between API calls
+3. ⚡ EFFICIENCY — Token usage, redundant API calls, conversation history management, latency
+4. ✅ BEST PRACTICES — Readability, maintainability, recommended patterns for Claude-powered apps
+
+**SPECIFICATIONS:**
+- Analyze ALL layers, even if no issues are found in some (confirming they are fine is also valuable)
+- If a critical security issue is found, mark it with 🚨 and prioritize it regardless of layer order
+- For each finding: indicate the affected file/section, explain the problem and its real-world impact, and show the proposed code fix
+- Number every finding with a global sequential identifier (H-01, H-02, H-03…) regardless of which layer it belongs to
+- NEVER apply any fix during the analysis phase. Once the full report is presented, close with: "Which fixes would you like me to apply? You can specify by number (e.g. H-01, H-03) or say 'all'."
+- Before applying authorized changes, warn the user if any selected fixes have dependencies on each other or could affect other parts of the code
+- Clearly distinguish between: "must fix" / "would be better if" / "style opinion"
+
+**RESPONSE FORMAT:**
+```
+## Executive summary
+Overall project status: 🔴 Critical / 🟡 Needs improvement / 🟢 Solid
+Files analyzed: [list the reviewed files/sections]
+Total findings: X (Y critical, Z improvements, W suggestions)
+
+## Analysis by layer
+For each layer (Security / Structure / Efficiency / Best Practices):
+**Status**: 🔴/🟡/🟢
+**H-0X · [short problem name]**
+  — File/section: ...
+  — Problem: ...
+  — Impact: ...
+  — Proposed fix: code block
+**No findings**: explicit confirmation if the layer looks good
+
+## Closing
+"Which fixes would you like me to apply? You can specify by number (e.g. H-01, H-03) or say 'all'."
+```

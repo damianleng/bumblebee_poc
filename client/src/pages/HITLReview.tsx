@@ -18,6 +18,7 @@ export default function HITLReview() {
   const [comments, setComments] = useState<Record<string, string>>({});
   const [itemStatuses, setItemStatuses] = useState<Record<string, string>>({});
   const [acting, setActing] = useState("");
+  const [actionError, setActionError] = useState("");
   const [skybotResult, setSkybotResult] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -45,26 +46,43 @@ export default function HITLReview() {
     try {
       await updateItem(id!, itemId, { approval_status: status, reviewer_comment: comments[itemId] || "" });
       queryClient.invalidateQueries({ queryKey: ["request", id] });
-    } catch {}
+    } catch (e: any) {
+      setActionError(e.message || "Failed to update item.");
+    }
   };
 
   const handleBulkApprove = async () => {
     setActing("approve");
-    try { await approveRequest(id!); queryClient.invalidateQueries({ queryKey: ["request", id] }); } catch {} finally { setActing(""); }
+    setActionError("");
+    try {
+      await approveRequest(id!);
+      queryClient.invalidateQueries({ queryKey: ["request", id] });
+    } catch (e: any) {
+      setActionError(e.message || "Failed to approve request.");
+    } finally { setActing(""); }
   };
 
   const handleBulkDeny = async () => {
     setActing("deny");
-    try { await denyRequest(id!); queryClient.invalidateQueries({ queryKey: ["request", id] }); } catch {} finally { setActing(""); }
+    setActionError("");
+    try {
+      await denyRequest(id!);
+      queryClient.invalidateQueries({ queryKey: ["request", id] });
+    } catch (e: any) {
+      setActionError(e.message || "Failed to deny request.");
+    } finally { setActing(""); }
   };
 
   const handleSkybot = async () => {
     setActing("skybot");
+    setActionError("");
     try {
       const res = await executeSkybot(id!);
       setSkybotResult(res);
       setShowModal(true);
-    } catch {} finally { setActing(""); }
+    } catch (e: any) {
+      setActionError(e.message || "Skybot submission failed.");
+    } finally { setActing(""); }
   };
 
   const handleReprocess = async () => {
@@ -140,13 +158,16 @@ export default function HITLReview() {
       </div>
 
       {/* Bulk actions */}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" className="h-8 text-xs bg-status-approved hover:bg-status-approved/90 text-primary-foreground" onClick={handleBulkApprove} disabled={!!acting}>
-          {acting === "approve" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Approve All
-        </Button>
-        <Button size="sm" variant="outline" className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10" onClick={handleBulkDeny} disabled={!!acting}>
-          {acting === "deny" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Deny All
-        </Button>
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" className="h-8 text-xs bg-status-approved hover:bg-status-approved/90 text-primary-foreground" onClick={handleBulkApprove} disabled={!!acting}>
+            {acting === "approve" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Approve All
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10" onClick={handleBulkDeny} disabled={!!acting}>
+            {acting === "deny" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Deny All
+          </Button>
+        </div>
+        {actionError && <p className="text-xs text-destructive">{actionError}</p>}
       </div>
 
       {/* Delta table */}

@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
@@ -10,10 +9,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Request, RequestItem, RequestAttachment, SapLookup, VendorLookup
 from schemas import RequestOut, RequestListOut, ItemPatchIn, AttachmentOut
-from routes.ingest import parse_excel
+from utils import parse_excel, save_attachment
 from agent import run_agent
 
-UPLOAD_DIR = "/app/uploads"
 
 router = APIRouter()
 
@@ -46,6 +44,7 @@ def get_request(request_id: UUID, db: Session = Depends(get_db)):
         vendor = db.query(VendorLookup).filter(VendorLookup.vendor_number == req.vendor_number).first()
         if vendor:
             vendor_data = {
+                # Underscore keys (agent prompt style)
                 "VENDOR_NAME": vendor.vendor_name, "VENDOR_ACCT_GROUP": vendor.acct_group,
                 "COMPANY_CODE": vendor.company_code, "STREET_ADDRESS": vendor.street_address,
                 "CITY": vendor.city, "STATE": vendor.state, "ZIP": vendor.zip,
@@ -53,6 +52,14 @@ def get_request(request_id: UUID, db: Session = Depends(get_db)):
                 "PAYMENT_TERMS": vendor.payment_terms, "PAYMENT_METHOD": vendor.payment_method,
                 "BANK_KEY": vendor.bank_key, "BANK_ACCT_NUMBER": vendor.bank_acct_number,
                 "BANK_ACCT_HOLDER": vendor.bank_acct_holder, "BANK_NAME": vendor.bank_name,
+                # Space/alternate keys (as AI extracts from SAP form labels)
+                "BANK KEY": vendor.bank_key,
+                "BANK ACCT #": vendor.bank_acct_number,
+                "BANK ACCT HOLDER NAME": vendor.bank_acct_holder,
+                "BANK NAME": vendor.bank_name,
+                "BANK COUNTRY": vendor.country,
+                "PAYMENT METHOD": vendor.payment_method,
+                "ACH COMPANY": vendor.payment_method,
             }
             for item in result["items"]:
                 if item.get("current_value") is None:
@@ -175,11 +182,7 @@ async def upload_attachment(
     next_version = existing + 1
 
     file_bytes = await file.read()
-    folder = os.path.join(UPLOAD_DIR, str(request_id))
-    os.makedirs(folder, exist_ok=True)
-    file_path = os.path.join(folder, f"v{next_version}_{file.filename}")
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
+    file_path = save_attachment(str(request_id), next_version, file.filename, file_bytes)
 
     att = RequestAttachment(
         request_id=request_id,
@@ -212,11 +215,7 @@ async def reprocess_request(
             RequestAttachment.request_id == request_id
         ).count()
         next_version = existing_count + 1
-        folder = os.path.join(UPLOAD_DIR, str(request_id))
-        os.makedirs(folder, exist_ok=True)
-        file_path = os.path.join(folder, f"v{next_version}_{file.filename}")
-        with open(file_path, "wb") as f:
-            f.write(file_bytes)
+        file_path = save_attachment(str(request_id), next_version, file.filename, file_bytes)
         db.add(RequestAttachment(
             request_id=request_id,
             version=str(next_version),

@@ -60,6 +60,7 @@ def skybot_execute(request_id: UUID, db: Session = Depends(get_db)):
         ).first()
         if vendor:
             field_setters = {
+                # Underscore keys
                 "VENDOR_NAME": "vendor_name", "VENDOR_ACCT_GROUP": "acct_group",
                 "COMPANY_CODE": "company_code", "STREET_ADDRESS": "street_address",
                 "CITY": "city", "STATE": "state", "ZIP": "zip", "COUNTRY": "country",
@@ -67,6 +68,14 @@ def skybot_execute(request_id: UUID, db: Session = Depends(get_db)):
                 "PAYMENT_METHOD": "payment_method", "BANK_KEY": "bank_key",
                 "BANK_ACCT_NUMBER": "bank_acct_number", "BANK_ACCT_HOLDER": "bank_acct_holder",
                 "BANK_NAME": "bank_name",
+                # Space/alternate keys (as AI extracts from SAP form labels)
+                "BANK KEY": "bank_key",
+                "BANK ACCT #": "bank_acct_number",
+                "BANK ACCT HOLDER NAME": "bank_acct_holder",
+                "BANK NAME": "bank_name",
+                "BANK COUNTRY": "country",
+                "PAYMENT METHOD": "payment_method",
+                "ACH COMPANY": "payment_method",
             }
             for item in approved_items:
                 attr = field_setters.get(item.field_name)
