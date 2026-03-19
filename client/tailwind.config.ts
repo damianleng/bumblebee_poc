@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["DM Sans", "sans-serif"],
+        display: ["Bebas Neue", "sans-serif"],
         mono: ["Roboto Mono", "monospace"],
       },
       colors: {

@@ -1,4 +1,6 @@
 import { LayoutDashboard, ClipboardList, Mail } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
+import logoWhite from "@/assets/logo-white.png";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -25,10 +27,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className={cn("px-4 py-5", collapsed && "px-2 py-4")}>
-          <h1 className={cn("text-sm font-bold tracking-wide text-sidebar-foreground", collapsed && "text-center text-xs")}>
-            {collapsed ? "BB" : "BumbleBee PoC"}
-          </h1>
+        <div className={cn("px-4 py-4 border-b border-sidebar-border", collapsed && "px-2 py-3 flex justify-center")}>
+          {collapsed ? (
+            <img src={logoIcon} alt="Bumble Bee" className="h-8 w-8 rounded-full" />
+          ) : (
+            <div className="flex flex-col gap-1">
+              <img src={logoWhite} alt="Bumble Bee Seafoods" className="h-8 w-auto object-contain" />
+              <span className="text-[10px] text-sidebar-foreground/50 tracking-wide">Master Data PoC</span>
+            </div>
+          )}
         </div>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60 text-[11px] uppercase tracking-wider">
@@ -43,7 +50,7 @@ export function AppSidebar() {
                       to={item.url}
                       end={item.url === "/"}
                       className="text-sidebar-foreground/80 hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                      activeClassName="bg-[#e62923] text-white font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
