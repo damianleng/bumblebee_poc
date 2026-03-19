@@ -86,6 +86,10 @@ export default function HITLReview() {
   };
 
   const handleReprocess = async () => {
+    if (!reprocessFile) {
+      setReprocessError("An updated attachment is required before reprocessing.");
+      return;
+    }
     if (!reprocessComment.trim()) {
       setReprocessError("Comment is required before reprocessing.");
       return;
@@ -160,10 +164,10 @@ export default function HITLReview() {
       {/* Bulk actions */}
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" className="h-8 text-xs bg-status-approved hover:bg-status-approved/90 text-primary-foreground" onClick={handleBulkApprove} disabled={!!acting}>
+          <Button size="sm" className="h-8 text-xs bg-status-approved hover:bg-status-approved/90 text-primary-foreground" onClick={handleBulkApprove} disabled={!!acting || items.length === 0}>
             {acting === "approve" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Approve All
           </Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10" onClick={handleBulkDeny} disabled={!!acting}>
+          <Button size="sm" variant="outline" className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10" onClick={handleBulkDeny} disabled={!!acting || items.length === 0}>
             {acting === "deny" && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />} Deny All
           </Button>
         </div>
@@ -274,7 +278,7 @@ export default function HITLReview() {
           </p>
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground">
-              Upload updated form <span className="text-muted-foreground">(optional — leave blank to re-use existing)</span>
+              Upload updated form <span className="text-destructive">*</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -307,10 +311,15 @@ export default function HITLReview() {
             />
           </div>
           {reprocessError && <p className="text-xs text-destructive">{reprocessError}</p>}
-          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleReprocess} disabled={reprocessing}>
-            {reprocessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Re-process with AI
-          </Button>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              Next step: upload an updated file and add a comment, then re-run the AI agent to extract the corrected changes.
+            </p>
+            <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={handleReprocess} disabled={reprocessing}>
+              {reprocessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Re-process with AI
+            </Button>
+          </div>
         </div>
       )}
 
