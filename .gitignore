@@ -59,4 +59,4 @@ Thumbs.db
 *.sqlite
 *.db
 
-fixtures/script
+script

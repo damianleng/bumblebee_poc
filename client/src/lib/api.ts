@@ -70,6 +70,10 @@ export function reprocessRequest(requestId: string, reviewerComment: string, fil
   return request(`/api/requests/${requestId}/reprocess`, { method: "POST", body: fd });
 }
 
+export function demoReset() {
+  return request("/api/demo/reset", { method: "POST" });
+}
+
 export function fetchAuditLog(params: { status?: string; from_date?: string; to_date?: string }) {
   const query = new URLSearchParams();
   if (params.status && params.status !== "all") query.set("status", params.status);

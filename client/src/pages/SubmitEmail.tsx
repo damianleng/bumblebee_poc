@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ingestEmail } from "@/lib/api";
+import { ingestEmail, demoReset } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -164,6 +164,10 @@ export default function SubmitEmail() {
   const loadScenario = async (scenario: ScenarioConfig) => {
     setLoadingScenario(scenario.id);
     try {
+      if (scenario.id === 3) {
+        await demoReset();
+      }
+
       const res = await fetch(`${BASE_URL}/demo-fixtures/${scenario.filename}`);
       if (!res.ok) throw new Error("Failed to fetch fixture file");
       const blob = await res.blob();

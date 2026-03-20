@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -11,6 +12,15 @@ router = APIRouter()
 
 # Mock vendor number counter — in a real integration SAP assigns this
 _MOCK_VENDOR_COUNTER = 3001
+
+
+@router.post("/api/demo/reset")
+def demo_reset(db: Session = Depends(get_db)):
+    global _MOCK_VENDOR_COUNTER
+    _MOCK_VENDOR_COUNTER = 3001
+    db.execute(text("DELETE FROM vendor_lookup WHERE vendor_number LIKE 'V-003%'"))
+    db.commit()
+    return {"status": "ok", "message": "Vendor counter reset to V-003001 and mock vendor rows cleared."}
 
 
 @router.post("/api/skybot/execute")
