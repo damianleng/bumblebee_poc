@@ -2,6 +2,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -54,6 +55,8 @@ app.include_router(ingest.router)
 app.include_router(requests.router)
 app.include_router(audit.router)
 app.include_router(skybot.router)
+
+app.mount("/demo-fixtures", StaticFiles(directory="demo_fixtures"), name="demo_fixtures")
 
 
 @app.get("/health")

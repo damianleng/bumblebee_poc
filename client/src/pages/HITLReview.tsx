@@ -220,8 +220,16 @@ export default function HITLReview() {
                     </td>
                     <td className="px-3 py-2.5">
                       <Input
-                        value={comments[iid] || ""}
+                        value={comments[iid] !== undefined ? comments[iid] : (item.reviewer_comment || "")}
                         onChange={e => setComments(prev => ({ ...prev, [iid]: e.target.value }))}
+                        onBlur={async () => {
+                          const comment = comments[iid];
+                          if (comment === undefined) return;
+                          try {
+                            await updateItem(id!, iid, { approval_status: st || item.approval_status || "pending", reviewer_comment: comment });
+                            queryClient.invalidateQueries({ queryKey: ["request", id] });
+                          } catch {}
+                        }}
                         placeholder="Comment..."
                         className="h-7 text-xs min-w-[140px]"
                       />
@@ -311,10 +319,14 @@ export default function HITLReview() {
             />
           </div>
           {reprocessError && <p className="text-xs text-destructive">{reprocessError}</p>}
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground">
-              Next step: upload an updated file and add a comment, then re-run the AI agent to extract the corrected changes.
-            </p>
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-start gap-2.5">
+              <span className="text-amber-500 mt-0.5">⚠</span>
+              <div>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-0.5">Action Required</p>
+                <p className="text-sm text-amber-900">Upload a corrected file and add a comment, then click Re-process.</p>
+              </div>
+            </div>
             <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={handleReprocess} disabled={reprocessing}>
               {reprocessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Re-process with AI
