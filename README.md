@@ -5,56 +5,6 @@
 AI Agent that automates the Partner Function Change Request and Vendor Setup/Change workflows.
 Reads incoming emails + Excel attachments, extracts structured data via Claude, presents to a human reviewer (HITL), and simulates a write-back to SAP via Skybot mock.
 
----
-
-## Current Status
-
-### Backend ✅ Complete
-
-| Component | Status |
-|---|---|
-| FastAPI backend scaffold | ✅ Done |
-| `/health` endpoint | ✅ Done |
-| PostgreSQL schema + seed | ✅ Done |
-| Claude two-step AI pipeline | ✅ Done |
-| `POST /api/ingest` | ✅ Done |
-| `GET /api/requests` | ✅ Done |
-| `GET /api/requests/:id` | ✅ Done |
-| `POST /api/requests/:id/approve` | ✅ Done |
-| `POST /api/requests/:id/deny` | ✅ Done |
-| `POST /api/requests/:id/flag` | ✅ Done |
-| `PATCH /api/requests/:id/items/:item_id` | ✅ Done |
-| `GET /api/audit` | ✅ Done |
-| `POST /api/skybot/execute` | ✅ Done |
-| `GET /api/requests/:id/attachments` | ✅ Done |
-| `GET /api/requests/:id/attachments/:att_id/download` | ✅ Done |
-| `POST /api/requests/:id/attachments` | ✅ Done |
-| `POST /api/requests/:id/reprocess` | ✅ Done |
-| Demo fixtures (6x) | ✅ Done |
-
-### Frontend ✅ Complete
-
-| Component | Status |
-|---|---|
-| React SPA (Vite + shadcn/ui) | ✅ Done |
-| Dashboard — request list | ✅ Done |
-| Submit Email page | ✅ Done |
-| AI Parsing Result screen | ✅ Done |
-| HITL Delta Review screen | ✅ Done |
-| Audit Dashboard screen (with filters) | ✅ Done |
-| SAP ground truth values from `sap_lookup` | ✅ Done |
-| Skybot success modal | ✅ Done |
-| Attachment versioning panel + download | ✅ Done |
-| AI Re-process panel (needs_review/flagged only) | ✅ Done |
-
-### Deployment ✅ Live on G7 VM
-
-| Service | URL |
-|---|---|
-| Backend API | `http://149.50.148.201:8001` |
-| Frontend | `http://149.50.148.201:3000` |
-
----
 
 ## Project Structure
 
@@ -184,25 +134,44 @@ User downloads attachment → edits in Excel → re-uploads with mandatory comme
 
 ---
 
+## Demo Scenarios
+
+Three scenarios are built into the **Submit Email** page. Click **Load Scenario** on any card to auto-populate the form (sender, subject, email body, and Excel attachment) — then click **Process Email** to run it.
+
+### Scenario 1 — New Vendor Setup
+- **What it shows:** AI reads a SAP Vendor Setup form and extracts all vendor fields (name, address, EIN, banking details). Skybot assigns a new vendor number (e.g. `V-003001`) and writes it to `vendor_lookup`.
+- **Expected result:** Confidence ~95% | `auto_classified` | Multiple fields extracted
+- **Fixture:** `scenario_3_new_vendor.xlsx`
+- **Flow:** Load → Submit → Send for Review → Approve All → Submit to SAP (Skybot)
+
+### Scenario 2 — Update Existing Vendor
+- **What it shows:** A follow-up to Scenario 1. The same vendor needs a bank update. AI shows current vs proposed values side by side. Reviewer approves only the changed fields.
+- **Prerequisite:** Run Scenario 1 first (vendor must exist in `vendor_lookup`)
+- **Expected result:** Confidence ~90% | `auto_classified` | Changed fields extracted
+- **Fixture:** `scenario_4_update_vendor.xlsx`
+- **Flow:** Load → Submit → Send for Review → review delta → Approve All → Submit to SAP (Skybot)
+
+### Scenario 3 — Ambiguous Vendor Form (Needs Review → Reprocess)
+- **What it shows:** An incomplete form causes the AI to flag the request as `needs_review`. The reviewer uploads the completed form, adds a comment, and re-runs the AI — which now extracts a full result. Demonstrates the human-in-the-loop safety net.
+- **Expected result (first submit):** Confidence < 85% | `needs_review` | Incomplete extraction
+- **Expected result (after reprocess):** Confidence ~90%+ | All fields extracted | Ready for approval
+- **Fixture:** `scenario_6_incomplete.xlsx` (first submit) → `scenario_6_complete.xlsx` (reprocess upload)
+- **Flow:** Load → Submit → Send for Review → scroll to Re-process panel → upload complete form + add comment → Re-process with AI → Approve All → Submit to SAP (Skybot)
+
+---
+
 ## Supported Workflows
 
-### 1. Partner Function / CSR Change
-- Attachment: simple Excel table (Account ID, Field, Current, Proposed)
-- `request_type`: `partner_function_change`
-- Current values enriched from `sap_lookup`
-
-### 2. New Vendor Setup
+### 1. New Vendor Setup
 - Attachment: SAP Vendor Setup/Change form (col B = label, col C = value)
 - `request_type`: `new_vendor`
 - Skybot assigns mock vendor number (V-003001+) and writes to `vendor_lookup`
 
-### 3. Change Existing Vendor
+### 2. Change Existing Vendor
 - Same SAP form, Type = CHANGE EXISTING
 - `request_type`: `change_existing`
 - Current values enriched from `vendor_lookup`
 - Skybot applies approved changes to `vendor_lookup`
-
----
 
 ## Database
 
@@ -221,50 +190,6 @@ Five tables on `rks-postgres`:
 TRUNCATE request_items, request_attachments, requests RESTART IDENTITY CASCADE;
 ```
 
----
-
-## Demo Fixtures
-
-Each `email.txt` includes instructions at the top for the demo presenter.
-
-| Fixture | Scenario | Expected Result |
-|---|---|---|
-| `fixture_1_new_vendor` | New vendor G7 Tech Services via SAP form | `new_vendor`, ~95%, auto_classified |
-| `fixture_2_change_vendor` | Update G7 Tech bank/payment info | `change_existing`, ~92%, auto_classified |
-| `fixture_3_ambiguous_form` | Incomplete SAP form, missing vendor # | needs_review, re-process panel shown |
-| `fixture_1_bulk_reassignment` | 3 accounts CSR reassignment | `partner_function_change`, ~95%, auto_classified |
-| `fixture_2_single_update` | Costco single CSR update | `partner_function_change`, ~90%, auto_classified |
-| `fixture_3_ambiguous` | Vague email, no attachment | needs_review, no items extracted |
-
----
-
-## Demo Walkthrough
-
-### Recommended Demo Order
-
-**Vendor flow first (shows full lifecycle):**
-1. Submit `fixture_1_new_vendor` → approve → Skybot assigns V-003001
-2. Submit `fixture_2_change_vendor` → HITL shows current values from step 1 → approve
-3. Submit `fixture_3_ambiguous_form` → needs_review → download form, fix it, re-upload, re-process
-
-**CSR flow:**
-4. Submit `fixture_1_bulk_reassignment` → approve all 3 → completed
-5. Submit `fixture_2_single_update` → approve → completed
-6. Submit `fixture_3_ambiguous` → show needs_review path, flag it
-
-**Close with Audit Log** — shows all 6 requests with real timestamps.
-
----
-
-### 3-Minute HITL Flow (Success Criteria)
-
-1. Open Dashboard → click **Review** on any auto_classified request
-2. Review extracted items — SAP current vs proposed side by side
-3. Click **Approve All**
-4. Click **Submit to SAP (Skybot)**
-5. Skybot modal confirms → lands on Audit Log
-
----
 
 ## Deployment — G7 VM (Portainer)
 
