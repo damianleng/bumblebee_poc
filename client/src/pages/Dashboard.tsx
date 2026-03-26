@@ -122,7 +122,7 @@ export default function Dashboard() {
                 {items.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      No requests found. Submit an email above to get started.
+                      No requests found. Submit an email to get started.
                     </td>
                   </tr>
                 )}

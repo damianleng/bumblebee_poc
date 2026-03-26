@@ -1,7 +1,7 @@
 import { LayoutDashboard, ClipboardList, Mail } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import logoWhite from "@/assets/logo-white.png";
-import strataLogo from "@/assets/strata-logo.png";
+import strataLogo from "@/assets/2.png";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -64,11 +64,11 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className={cn("px-2 py-4 border-t border-sidebar-border", collapsed && "flex justify-center px-2")}>
+        <div className={cn("px-4  border-t border-sidebar-border flex justify-center", collapsed && "px-2")}>
           {collapsed ? (
             <img src={strataLogo} alt="STRATA" className="h-8 w-8 object-contain opacity-80" />
           ) : (
-            <img src={strataLogo} alt="STRATA" className="w-[115%] max-w-none object-contain object-left -ml-4" />
+            <img src={strataLogo} alt="STRATA" className="w-full h-auto object-contain" />
           )}
         </div>
       </SidebarFooter>
