@@ -56,7 +56,9 @@ export default function HITLReview() {
     setActionError("");
     try {
       await approveRequest(id!);
-      queryClient.invalidateQueries({ queryKey: ["request", id] });
+      const bulk: Record<string, string> = {};
+      items.forEach((item: any, i: number) => { bulk[item.id || String(i)] = "approved"; });
+      setItemStatuses(prev => ({ ...prev, ...bulk }));
     } catch (e: any) {
       setActionError(e.message || "Failed to approve request.");
     } finally { setActing(""); }
@@ -67,7 +69,9 @@ export default function HITLReview() {
     setActionError("");
     try {
       await denyRequest(id!);
-      queryClient.invalidateQueries({ queryKey: ["request", id] });
+      const bulk: Record<string, string> = {};
+      items.forEach((item: any, i: number) => { bulk[item.id || String(i)] = "denied"; });
+      setItemStatuses(prev => ({ ...prev, ...bulk }));
     } catch (e: any) {
       setActionError(e.message || "Failed to deny request.");
     } finally { setActing(""); }
