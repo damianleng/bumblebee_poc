@@ -45,8 +45,8 @@ export default function HITLReview() {
     setItemStatuses(prev => ({ ...prev, [itemId]: status }));
     try {
       await updateItem(id!, itemId, { approval_status: status, reviewer_comment: comments[itemId] || "" });
-      queryClient.invalidateQueries({ queryKey: ["request", id] });
     } catch (e: any) {
+      setItemStatuses(prev => ({ ...prev, [itemId]: "" }));
       setActionError(e.message || "Failed to update item.");
     }
   };
@@ -227,7 +227,6 @@ export default function HITLReview() {
                           if (comment === undefined) return;
                           try {
                             await updateItem(id!, iid, { approval_status: st || item.approval_status || "pending", reviewer_comment: comment });
-                            queryClient.invalidateQueries({ queryKey: ["request", id] });
                           } catch {}
                         }}
                         placeholder="Comment..."

@@ -18,9 +18,10 @@ _MOCK_VENDOR_COUNTER = 3001
 def demo_reset(db: Session = Depends(get_db)):
     global _MOCK_VENDOR_COUNTER
     _MOCK_VENDOR_COUNTER = 3001
-    db.execute(text("DELETE FROM vendor_lookup WHERE vendor_number LIKE 'V-003%'"))
+    db.execute(text("TRUNCATE vendor_lookup"))
+    db.execute(text("TRUNCATE TABLE requests CASCADE"))
     db.commit()
-    return {"status": "ok", "message": "Vendor counter reset to V-003001 and mock vendor rows cleared."}
+    return {"status": "ok", "message": "Demo reset complete. All requests cleared and vendor counter reset to V-003001."}
 
 
 @router.post("/api/skybot/execute")

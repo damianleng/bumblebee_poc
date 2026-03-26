@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { fetchRequests } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchRequests, demoReset } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 function truncateUUID(id: string) {
   return id?.length > 8 ? id.slice(0, 8) + "…" : id;
@@ -20,6 +22,9 @@ function formatDate(d: string) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [resetting, setResetting] = useState(false);
+
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["requests"],
     queryFn: fetchRequests,
@@ -27,9 +32,36 @@ export default function Dashboard() {
 
   const items = Array.isArray(requests) ? requests : requests?.requests || [];
 
+  const handleDemoReset = async () => {
+    const confirmed = window.confirm("Reset the demo? This will delete all requests and clear all vendor data. This cannot be undone.");
+    if (!confirmed) return;
+    setResetting(true);
+    try {
+      await demoReset();
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+      toast.success("Demo reset", { description: "All requests cleared and vendor counter reset to V-003001." });
+    } catch {
+      toast.error("Reset failed", { description: "Could not reset the demo. Try again." });
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-foreground">Master Data Requests</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-foreground">Master Data Requests</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 text-muted-foreground"
+          onClick={handleDemoReset}
+          disabled={resetting}
+        >
+          {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+          Reset Demo
+        </Button>
+      </div>
 
       {/* Requests Table */}
       <div className="bg-card border rounded-lg overflow-hidden">
